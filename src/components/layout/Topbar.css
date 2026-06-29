@@ -114,3 +114,12 @@
   font-size: 0.75rem;
   color: var(--text-muted);
 }
+
+.logout-btn {
+  margin-left: 0.5rem;
+  color: var(--danger, #ef4444);
+}
+
+.logout-btn:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+}

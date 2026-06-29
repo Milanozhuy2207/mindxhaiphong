@@ -1,7 +1,30 @@
-import { Bell, Search, User } from 'lucide-react';
+import { Bell, Search, User, LogOut } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import './Topbar.css';
 
 export default function Topbar() {
+  const { currentUser, userRole, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      toast.error('Có lỗi xảy ra khi đăng xuất');
+    }
+  };
+
+  const getRoleDisplayName = (role) => {
+    switch(role) {
+      case 'super_admin': return 'Super Admin';
+      case 'admin': return 'Quản lý';
+      default: return 'Nhân viên';
+    }
+  };
+
   return (
     <header className="topbar glass">
       <div className="search-bar">
@@ -19,9 +42,12 @@ export default function Topbar() {
             <User size={20} />
           </div>
           <div className="user-info">
-            <span className="user-name">Admin CS</span>
-            <span className="user-role">Quản lý</span>
+            <span className="user-name">{currentUser?.email?.split('@')[0] || 'User'}</span>
+            <span className="user-role">{getRoleDisplayName(userRole)}</span>
           </div>
+          <button className="logout-btn icon-btn" onClick={handleLogout} title="Đăng xuất">
+            <LogOut size={18} />
+          </button>
         </div>
       </div>
     </header>
