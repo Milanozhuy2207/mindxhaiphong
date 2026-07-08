@@ -5,10 +5,11 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast'
 import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore'
 import { db } from '../config/firebase';
+import { logActivity } from '../utils/activityUtils';
 
 export default function Classes() {
   const [classes, setClasses] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
@@ -29,7 +30,6 @@ export default function Classes() {
   };
 
   useEffect(() => {
-    setLoading(true)
     const unsubscribe = onSnapshot(collection(db, "classes"), (snapshot) => {
       const data = snapshot.docs.map((doc) => ({
         dbId: doc.id,
@@ -56,11 +56,13 @@ export default function Classes() {
         await updateDoc(docRef, formData);
         setClasses(prev => prev.map(c => c.dbId === editingId ? { ...c, ...formData } : c));
         toast.success("Cập nhật lớp học thành công");
+        await logActivity('class', 'Cập nhật lớp học', `Thông tin lớp ${formData.name} đã được cập nhật.`, 'info');
       } else {
         const newClass = { ...formData, createdAt: new Date().getTime() };
         const docRef = await addDoc(collection(db, "classes"), newClass);
         setClasses(prev => [{ dbId: docRef.id, ...newClass }, ...prev]);
         toast.success("Thêm lớp học thành công");
+        await logActivity('class', 'Mở lớp mới', `Lớp học ${formData.name} vừa được mở.`, 'primary');
       }
       setIsModalOpen(false);
       setEditingId(null);
@@ -98,10 +100,12 @@ export default function Classes() {
     if (!window.confirm("Bạn có chắc chắn muốn xóa lớp học này?")) return;
 
     try {
+      const className = classes.find(c => c.dbId === dbId)?.name || 'Không rõ';
       const docRef = doc(db, "classes", dbId);
       await deleteDoc(docRef);
       setClasses(prev => prev.filter(c => c.dbId !== dbId));
       toast.success("Xóa lớp học thành công");
+      await logActivity('class', 'Xóa lớp học', `Lớp học ${className} đã bị xóa.`, 'danger');
     } catch (err) {
       console.error(err);
       toast.error("Xóa lớp học thất bại");
@@ -120,12 +124,14 @@ export default function Classes() {
           <h1 className="page-title">Quản lý Lớp học</h1>
           <p className="page-subtitle">Quản lý các lớp đang hoạt động và sắp khai giảng</p>
         </div>
-        <RoleGuard allowedRoles={['super_admin', 'admin']}>
-          <button className="btn btn-primary" onClick={openAddModal}>
-            <Plus size={18} />
-            Mở lớp mới
-          </button>
-        </RoleGuard>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <RoleGuard allowedRoles={['super_admin', 'admin', 'staff']}>
+            <button className="btn btn-primary" onClick={openAddModal}>
+              <Plus size={18} />
+              Mở lớp mới
+            </button>
+          </RoleGuard>
+        </div>
       </div>
 
       <div className="stats-grid" style={{ marginBottom: '1rem' }}>
@@ -183,7 +189,7 @@ export default function Classes() {
                     </td>
                     <td>
                       <div className="action-buttons">
-                        <RoleGuard allowedRoles={['super_admin', 'admin']}>
+                        <RoleGuard allowedRoles={['super_admin', 'admin', 'staff']}>
                           <button className="btn-icon" title="Chỉnh sửa" onClick={() => openEditModal(cls)}><Edit size={16} /></button>
                           <button className="btn-icon text-danger" title="Xóa" onClick={() => handleDelete(cls.dbId)}><Trash size={16} /></button>
                         </RoleGuard>
