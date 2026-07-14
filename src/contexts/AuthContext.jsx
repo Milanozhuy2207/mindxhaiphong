@@ -20,9 +20,9 @@ export function AuthProvider({ children }) {
       const userDoc = await getDoc(userDocRef);
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        setUserRole(userData.role || 'staff'); // Default to staff if role not found
+        setUserRole(userData.role || 'staff'); // Mặc định là staff nếu không có trường role
       } else {
-        setUserRole('staff');
+        setUserRole('staff'); // Tài khoản mới hoặc không có doc mặc định là staff
       }
     } catch (error) {
       console.error("Error fetching user role:", error);

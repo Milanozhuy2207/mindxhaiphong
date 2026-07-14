@@ -4,20 +4,23 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast'
 import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore'
 import { db } from '../config/firebase';
+import { logActivity } from '../utils/activityUtils';
 
 export default function Students() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [students, setStudents] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const [itemsPerPage, setItemsPerPage] = useState(5);
   const [formData, setFormData] = useState({
     studentId: '',
     name: '',
-    phone: '',
+    email: '',
+    parentName: '',
+    parentPhone: '',
     classes: '',
     status: 'Đang học'
   });
@@ -30,7 +33,6 @@ export default function Students() {
   };
 
   useEffect(() => {
-    setLoading(true)
     const unsubscribe = onSnapshot(collection(db, "students"), (snapshot) => {
       const data = snapshot.docs.map((doc) => ({
         id: doc.id,
@@ -57,10 +59,9 @@ export default function Students() {
     const term = searchTerm.toLowerCase();
     const matchId = s.studentId && s.studentId.toLowerCase().includes(term);
     const matchName = s.name && s.name.toLowerCase().includes(term);
-    const matchPhone = s.phone && s.phone.includes(term);
     const matchClass = s.classes && s.classes.toLowerCase().includes(term);
 
-    const matchSearch = matchId || matchName || matchPhone || matchClass;
+    const matchSearch = matchId || matchName || matchClass;
     const matchStatus = filterStatus === 'All' || s.status === filterStatus;
 
     return matchSearch && matchStatus;
@@ -75,20 +76,29 @@ export default function Students() {
     e.preventDefault();
     try {
       setLoading(true);
+
+      let finalStudentId = formData.studentId;
+      if (!finalStudentId || finalStudentId === 'Tạo tự động' || finalStudentId === 'Chưa cập nhật') {
+         finalStudentId = generateStudentId();
+      }
+      const dataToSave = { ...formData, studentId: finalStudentId };
+
       if (editingId) {
         const docRef = doc(db, "students", editingId);
-        await updateDoc(docRef, formData);
-        setStudents(prev => prev.map(s => s.id === editingId ? { ...s, ...formData } : s));
+        await updateDoc(docRef, dataToSave);
+        setStudents(prev => prev.map(s => s.id === editingId ? { ...s, ...dataToSave } : s));
         toast.success("Cập nhật học viên thành công");
+        await logActivity('student', 'Cập nhật học viên', `Thông tin học viên ${dataToSave.name} đã được cập nhật.`, 'info');
       } else {
-        const newStudent = { ...formData, createdAt: new Date().getTime() };
+        const newStudent = { ...dataToSave, createdAt: new Date().getTime() };
         const docRef = await addDoc(collection(db, "students"), newStudent);
         setStudents(prev => [{ id: docRef.id, ...newStudent }, ...prev]);
         toast.success("Thêm học viên thành công");
+        await logActivity('student', 'Thêm học viên mới', `Học viên ${dataToSave.name} đã được thêm vào hệ thống.`, 'success');
       }
       setIsModalOpen(false);
       setEditingId(null);
-      setFormData({ studentId: '', name: '', phone: '', classes: '', status: 'Đang học' });
+      setFormData({ studentId: '', name: '', email: '', parentName: '', parentPhone: '', classes: '', status: 'Đang học' });
     }
     catch (err) {
       console.error(err);
@@ -116,17 +126,19 @@ export default function Students() {
   const openEditModal = (student) => {
     setFormData({
       studentId: student.studentId || generateStudentId(),
-      name: student.name,
-      phone: student.phone,
-      classes: student.classes,
-      status: student.status
+      name: student.name || '',
+      email: student.email || '',
+      parentName: student.parentName || '',
+      parentPhone: student.parentPhone || '',
+      classes: student.classes || '',
+      status: student.status || 'Đang học'
     });
     setEditingId(student.id);
     setIsModalOpen(true);
   };
 
   const openAddModal = () => {
-    setFormData({ studentId: generateStudentId(), name: '', phone: '', classes: '', status: 'Đang học' });
+    setFormData({ studentId: generateStudentId(), name: '', email: '', parentName: '', parentPhone: '', classes: '', status: 'Đang học' });
     setEditingId(null);
     setIsModalOpen(true);
   };
@@ -135,10 +147,12 @@ export default function Students() {
     if (!window.confirm("Bạn có chắc chắn muốn xóa học viên này?")) return;
 
     try {
+      const studentName = students.find(s => s.id === id)?.name || 'Không rõ';
       const docRef = doc(db, "students", id);
       await deleteDoc(docRef);
       setStudents(prev => prev.filter(s => s.id !== id));
       toast.success("Xóa học viên thành công");
+      await logActivity('student', 'Xóa học viên', `Học viên ${studentName} đã bị xóa khỏi hệ thống.`, 'danger');
     } catch (err) {
       console.error(err);
       toast.error("Xóa học viên thất bại");
@@ -173,8 +187,8 @@ export default function Students() {
 
   const handleExport = () => {
     const csvContent = "data:text/csv;charset=utf-8,\uFEFF"
-      + "Mã HV,Họ tên,Số điện thoại,Lớp đang học,Trạng thái\n"
-      + students.map((s) => `"${s.studentId || ''}","${s.name}","${s.phone}","${s.classes}","${s.status}"`).join("\n");
+      + "Mã HV,Họ tên,Email,Tên phụ huynh,SĐT phụ huynh,Lớp đang học,Trạng thái\n"
+      + students.map((s) => `"${s.studentId || ''}","${s.name}","${s.email || ''}","${s.parentName || ''}","${s.parentPhone || ''}","${s.classes}","${s.status}"`).join("\n");
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -216,6 +230,17 @@ export default function Students() {
           <div className="toolbar-actions">
             <select
               className="btn btn-ghost"
+              value={itemsPerPage}
+              onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+              style={{ outline: 'none', cursor: 'pointer', border: '1px solid var(--border)' }}
+            >
+              <option value={5}>5 dòng/trang</option>
+              <option value={10}>10 dòng/trang</option>
+              <option value={20}>20 dòng/trang</option>
+              <option value={50}>50 dòng/trang</option>
+            </select>
+            <select
+              className="btn btn-ghost"
               value={filterStatus}
               onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
               style={{ outline: 'none', cursor: 'pointer' }}
@@ -238,7 +263,9 @@ export default function Students() {
               <tr>
                 <th>Mã HV</th>
                 <th>Họ tên</th>
-                <th>Số điện thoại</th>
+                <th>Email</th>
+                <th>Tên phụ huynh</th>
+                <th>SĐT phụ huynh</th>
                 <th>Lớp đang học</th>
                 <th>Trạng thái</th>
                 <th>Thao tác</th>
@@ -247,18 +274,20 @@ export default function Students() {
             <tbody>
               {loading && students.length === 0 ? (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }}>Đang tải dữ liệu...</td>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>Đang tải dữ liệu...</td>
                 </tr>
               ) : currentItems.length === 0 ? (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }}>Không tìm thấy học viên nào</td>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>Không tìm thấy học viên nào</td>
                 </tr>
               ) : (
                 currentItems.map((student, index) => (
                   <tr key={student.id}>
                     <td><strong>{student.studentId || 'Chưa cập nhật'}</strong></td>
                     <td>{student.name}</td>
-                    <td>{student.phone}</td>
+                    <td>{student.email || '-'}</td>
+                    <td>{student.parentName || '-'}</td>
+                    <td>{student.parentPhone || '-'}</td>
                     <td>{student.classes}</td>
                     <td>
                       <span className={`status-badge status-${student.status === 'Đang học' ? 'active' : student.status === 'Bảo lưu' ? 'warning' : 'info'}`}>
@@ -314,12 +343,12 @@ export default function Students() {
       {/* Modal Thêm Học Viên */}
       {isModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-content glass">
+          <div className="modal-content glass large-modal">
             <div className="modal-header">
               <h2>{editingId ? 'Cập nhật Học Viên' : 'Thêm Học Viên Mới'}</h2>
               <button className="btn-close" onClick={() => setIsModalOpen(false)}>&times;</button>
             </div>
-            <form onSubmit={handleAddOrEditStudent} className="modal-form">
+            <form onSubmit={handleAddOrEditStudent} className="modal-form-grid">
               <div className="form-group">
                 <label>Mã Học Viên</label>
                 <input type="text" name="studentId" required value={formData.studentId} disabled style={{ backgroundColor: 'var(--bg-glass-hover)', cursor: 'not-allowed', color: 'var(--text-muted)' }} />
@@ -329,8 +358,16 @@ export default function Students() {
                 <input type="text" name="name" required value={formData.name} onChange={handleChange} placeholder="Nhập họ và tên..." />
               </div>
               <div className="form-group">
-                <label>Số điện thoại</label>
-                <input type="text" name="phone" required value={formData.phone} onChange={handleChange} placeholder="Nhập số điện thoại..." />
+                <label>Email</label>
+                <input type="email" name="email" value={formData.email || ''} onChange={handleChange} placeholder="Nhập email học viên..." />
+              </div>
+              <div className="form-group">
+                <label>Tên phụ huynh</label>
+                <input type="text" name="parentName" value={formData.parentName || ''} onChange={handleChange} placeholder="Nhập tên phụ huynh..." />
+              </div>
+              <div className="form-group">
+                <label>SĐT phụ huynh</label>
+                <input type="text" name="parentPhone" value={formData.parentPhone || ''} onChange={handleChange} placeholder="Nhập SĐT phụ huynh..." />
               </div>
               <div className="form-group">
                 <label>Lớp đăng ký</label>
@@ -344,7 +381,7 @@ export default function Students() {
                   <option value="Bảo lưu">Bảo lưu</option>
                 </select>
               </div>
-              <div className="modal-actions">
+              <div className="modal-actions full-width">
                 <button type="button" className="btn btn-ghost" onClick={() => setIsModalOpen(false)}>Hủy</button>
                 <button type="submit" className="btn btn-primary" disabled={loading}>
                   {loading ? 'Đang lưu...' : 'Lưu học viên'}

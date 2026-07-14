@@ -2,11 +2,23 @@ import { Bell, Search, User, LogOut } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { db } from '../../config/firebase';
+import { useState, useEffect } from 'react';
 import './Topbar.css';
 
 export default function Topbar() {
   const { currentUser, userRole, logout } = useAuth();
   const navigate = useNavigate();
+  const [notificationCount, setNotificationCount] = useState(0);
+
+  useEffect(() => {
+    const q = query(collection(db, "tickets"), where("status", "==", "Mới"));
+    const unsub = onSnapshot(q, (snap) => {
+      setNotificationCount(snap.docs.length);
+    });
+    return () => unsub();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -18,9 +30,12 @@ export default function Topbar() {
   };
 
   const getRoleDisplayName = (role) => {
-    switch(role) {
+    switch (role) {
       case 'super_admin': return 'Super Admin';
-      case 'admin': return 'Quản lý';
+      case 'admin': return 'Admin';
+      case 'CM': return 'CM';
+      case 'CS': return 'CS'
+      case 'OPS': return 'OPS'
       default: return 'Nhân viên';
     }
   };
@@ -35,7 +50,7 @@ export default function Topbar() {
       <div className="topbar-actions">
         <button className="icon-btn relative">
           <Bell size={20} />
-          <span className="badge">3</span>
+          {notificationCount > 0 && <span className="badge">{notificationCount}</span>}
         </button>
         <div className="user-profile">
           <div className="avatar">
