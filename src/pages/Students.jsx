@@ -14,7 +14,7 @@ export default function Students() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const [itemsPerPage, setItemsPerPage] = useState(5);
   const [formData, setFormData] = useState({
     studentId: '',
     name: '',
@@ -76,18 +76,25 @@ export default function Students() {
     e.preventDefault();
     try {
       setLoading(true);
+
+      let finalStudentId = formData.studentId;
+      if (!finalStudentId || finalStudentId === 'Tạo tự động' || finalStudentId === 'Chưa cập nhật') {
+         finalStudentId = generateStudentId();
+      }
+      const dataToSave = { ...formData, studentId: finalStudentId };
+
       if (editingId) {
         const docRef = doc(db, "students", editingId);
-        await updateDoc(docRef, formData);
-        setStudents(prev => prev.map(s => s.id === editingId ? { ...s, ...formData } : s));
+        await updateDoc(docRef, dataToSave);
+        setStudents(prev => prev.map(s => s.id === editingId ? { ...s, ...dataToSave } : s));
         toast.success("Cập nhật học viên thành công");
-        await logActivity('student', 'Cập nhật học viên', `Thông tin học viên ${formData.name} đã được cập nhật.`, 'info');
+        await logActivity('student', 'Cập nhật học viên', `Thông tin học viên ${dataToSave.name} đã được cập nhật.`, 'info');
       } else {
-        const newStudent = { ...formData, createdAt: new Date().getTime() };
+        const newStudent = { ...dataToSave, createdAt: new Date().getTime() };
         const docRef = await addDoc(collection(db, "students"), newStudent);
         setStudents(prev => [{ id: docRef.id, ...newStudent }, ...prev]);
         toast.success("Thêm học viên thành công");
-        await logActivity('student', 'Thêm học viên mới', `Học viên ${formData.name} đã được thêm vào hệ thống.`, 'success');
+        await logActivity('student', 'Thêm học viên mới', `Học viên ${dataToSave.name} đã được thêm vào hệ thống.`, 'success');
       }
       setIsModalOpen(false);
       setEditingId(null);
@@ -221,6 +228,17 @@ export default function Students() {
             />
           </div>
           <div className="toolbar-actions">
+            <select
+              className="btn btn-ghost"
+              value={itemsPerPage}
+              onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+              style={{ outline: 'none', cursor: 'pointer', border: '1px solid var(--border)' }}
+            >
+              <option value={5}>5 dòng/trang</option>
+              <option value={10}>10 dòng/trang</option>
+              <option value={20}>20 dòng/trang</option>
+              <option value={50}>50 dòng/trang</option>
+            </select>
             <select
               className="btn btn-ghost"
               value={filterStatus}

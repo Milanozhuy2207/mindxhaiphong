@@ -16,6 +16,7 @@ export default function Schedule() {
   const [baseDate, setBaseDate] = useState(new Date());
   const [selectedClass, setSelectedClass] = useState(null);
   const [activeTab, setActiveTab] = useState('calendar');
+  const [shiftFilter, setShiftFilter] = useState('all');
 
   useEffect(() => {
     // Lấy danh sách lớp học
@@ -285,6 +286,33 @@ export default function Schedule() {
   const currentMonthStr = `${daysVN[baseDate.getDay()]}, ${String(baseDate.getDate()).padStart(2, '0')}/${String(baseDate.getMonth() + 1).padStart(2, '0')}/${baseDate.getFullYear()}`;
   const localDateStr = `${baseDate.getFullYear()}-${String(baseDate.getMonth() + 1).padStart(2, '0')}-${String(baseDate.getDate()).padStart(2, '0')}`;
 
+  const gridColumnsStr = weekDays.map(day => {
+    if (day.isToday) return 'minmax(220px, 3fr)';
+    const now = new Date();
+    now.setHours(0,0,0,0);
+    const dayDate = new Date(day.fullDate);
+    dayDate.setHours(0,0,0,0);
+    
+    if (dayDate < now) return 'minmax(90px, 1fr)'; // past
+    return 'minmax(130px, 2fr)'; // future
+  }).join(' ');
+
+  const filteredTimeSlots = parsedData.timeSlots.filter(timeSlot => {
+    if (shiftFilter === 'all') return true;
+    
+    let h = parseInt(timeSlot.split(':')[0]);
+    if (isNaN(h)) {
+      if (timeSlot.toLowerCase().includes('sáng')) h = 8;
+      else if (timeSlot.toLowerCase().includes('chiều')) h = 14;
+      else if (timeSlot.toLowerCase().includes('tối')) h = 19;
+    }
+    
+    if (shiftFilter === 'morning') return h < 13;
+    if (shiftFilter === 'afternoon') return h >= 13 && h < 18;
+    if (shiftFilter === 'evening') return h >= 18;
+    return true;
+  });
+
   return (
     <div className="schedule-container">
       <div className="schedule-header-wrap" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '1rem' }}>
@@ -317,7 +345,14 @@ export default function Schedule() {
         </div>
         
         {activeTab === 'calendar' && (
-          <div className="date-controls" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginTop: '0.5rem' }}>
+            <div className="shift-filters" style={{ display: 'flex', gap: '0.5rem', background: 'var(--bg-base)', padding: '0.25rem', borderRadius: 'var(--radius-lg)' }}>
+              <button className={`btn ${shiftFilter === 'all' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setShiftFilter('all')}>Tất cả</button>
+              <button className={`btn ${shiftFilter === 'morning' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setShiftFilter('morning')}>Sáng (08h-12h)</button>
+              <button className={`btn ${shiftFilter === 'afternoon' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setShiftFilter('afternoon')}>Chiều (14h-18h)</button>
+              <button className={`btn ${shiftFilter === 'evening' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setShiftFilter('evening')}>Tối (19h-21h30)</button>
+            </div>
+            <div className="date-controls" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
             <button className="btn-today" onClick={handleToday}>Hôm nay</button>
             <button className="date-btn" onClick={handlePrevWeek}><ChevronLeft size={20} /></button>
             <div 
@@ -357,6 +392,7 @@ export default function Schedule() {
             </div>
             <button className="date-btn" onClick={handleNextWeek}><ChevronRight size={20} /></button>
           </div>
+          </div>
         )}
       </div>
 
@@ -372,7 +408,7 @@ export default function Schedule() {
       ) : (
         <>
           <div className="timetable-card">
-            <div className="timetable-grid">
+            <div className="timetable-grid" style={{ gridTemplateColumns: `80px ${gridColumnsStr}` }}>
               {/* Header Row */}
               <div className="grid-header-row">
                 <div className="grid-header-cell empty-corner"></div>
@@ -385,12 +421,12 @@ export default function Schedule() {
               </div>
 
               {/* Body Rows */}
-              {parsedData.timeSlots.length === 0 ? (
+              {filteredTimeSlots.length === 0 ? (
                 <div style={{ gridColumn: '1 / -1', padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  Không có lịch học nào có khung giờ hợp lệ.
+                  Không có lịch học nào phù hợp với bộ lọc này.
                 </div>
               ) : (
-                parsedData.timeSlots.map(timeSlot => {
+                filteredTimeSlots.map(timeSlot => {
                   let shiftLabel = '';
                   for (let cls of parsedData.parsedClasses) {
                     if (cls.exactTime === timeSlot) {

@@ -20,13 +20,13 @@ export function AuthProvider({ children }) {
       const userDoc = await getDoc(userDocRef);
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        setUserRole(userData.role || 'admin'); // Mặc định là admin để test các nút bấm
+        setUserRole(userData.role || 'staff'); // Mặc định là staff nếu không có trường role
       } else {
-        setUserRole('admin');
+        setUserRole('staff'); // Tài khoản mới hoặc không có doc mặc định là staff
       }
     } catch (error) {
       console.error("Error fetching user role:", error);
-      setUserRole('admin');
+      setUserRole('staff');
     }
   }
 

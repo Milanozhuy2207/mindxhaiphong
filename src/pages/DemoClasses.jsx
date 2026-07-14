@@ -280,55 +280,55 @@ export default function DemoClasses({ isEmbedded = false }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                 <div className="form-group">
                   <label>Mã Lớp *</label>
-                  <input type="text" name="classCode" value={formData.classCode} onChange={handleChange} required placeholder="VD: HP-C4K-SB26"/>
+                  <input type="text" name="classCode" value={formData.classCode} onChange={handleChange} required placeholder="VD: HP-C4K-SB26" />
                 </div>
                 <div className="form-group">
                   <label>Số lượng HV dự kiến</label>
-                  <input type="number" name="expectedStudents" value={formData.expectedStudents} onChange={handleChange} min="0"/>
+                  <input type="number" name="expectedStudents" value={formData.expectedStudents} onChange={handleChange} min="0" />
                 </div>
                 <div className="form-group">
                   <label>Số lượng HV thực tế</label>
-                  <input type="number" name="actualStudents" value={formData.actualStudents} onChange={handleChange} min="0"/>
+                  <input type="number" name="actualStudents" value={formData.actualStudents} onChange={handleChange} min="0" />
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1rem' }}>
                 <div className="form-group">
                   <label>Ngày Demo *</label>
-                  <input type="date" name="demoDate" value={formData.demoDate} onChange={handleChange} required/>
+                  <input type="date" name="demoDate" value={formData.demoDate} onChange={handleChange} required />
                 </div>
                 <div className="form-group">
                   <label>Ngày Khai giảng (Dự kiến)</label>
-                  <input type="date" name="startDate" value={formData.startDate} onChange={handleChange}/>
+                  <input type="date" name="startDate" value={formData.startDate} onChange={handleChange} />
                 </div>
                 <div className="form-group">
                   <label>Giờ Bắt Đầu</label>
-                  <input type="time" name="startTime" value={formData.startTime} onChange={handleChange}/>
+                  <input type="time" name="startTime" value={formData.startTime} onChange={handleChange} />
                 </div>
                 <div className="form-group">
                   <label>Giờ Kết Thúc</label>
-                  <input type="time" name="endTime" value={formData.endTime} onChange={handleChange}/>
+                  <input type="time" name="endTime" value={formData.endTime} onChange={handleChange} />
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                 <div className="form-group">
                   <label>Giảng viên (GV)</label>
-                  <input type="text" name="teacher" value={formData.teacher} onChange={handleChange} placeholder="Username GV"/>
+                  <input type="text" name="teacher" value={formData.teacher} onChange={handleChange} placeholder="Username GV" />
                 </div>
                 <div className="form-group">
                   <label>Giám khảo</label>
-                  <input type="text" name="examiner" value={formData.examiner} onChange={handleChange}/>
+                  <input type="text" name="examiner" value={formData.examiner} onChange={handleChange} />
                 </div>
                 <div className="form-group">
                   <label>Dự thính</label>
-                  <input type="text" name="auditor" value={formData.auditor} onChange={handleChange}/>
+                  <input type="text" name="auditor" value={formData.auditor} onChange={handleChange} />
                 </div>
               </div>
 
               <div className="form-group">
                 <label>Học viên đạt giải</label>
-                <input type="text" name="awardedStudents" value={formData.awardedStudents} onChange={handleChange} placeholder="Tên các học viên"/>
+                <input type="text" name="awardedStudents" value={formData.awardedStudents} onChange={handleChange} placeholder="Tên các học viên" />
               </div>
 
               <div className="form-group">
@@ -339,17 +339,17 @@ export default function DemoClasses({ isEmbedded = false }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                 <div className="form-group">
                   <label>Phiếu xuất Ecount</label>
-                  <input type="text" name="ecountVoucher" value={formData.ecountVoucher} onChange={handleChange}/>
+                  <input type="text" name="ecountVoucher" value={formData.ecountVoucher} onChange={handleChange} />
                 </div>
                 <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '0.5rem' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                    <input type="checkbox" name="certi" checked={formData.certi} onChange={handleChange} style={{ width: 'auto' }}/>
+                    <input type="checkbox" name="certi" checked={formData.certi} onChange={handleChange} style={{ width: 'auto' }} />
                     Certi (Đã có chứng chỉ)
                   </label>
                 </div>
                 <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '0.5rem' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                    <input type="checkbox" name="csat" checked={formData.csat} onChange={handleChange} style={{ width: 'auto' }}/>
+                    <input type="checkbox" name="csat" checked={formData.csat} onChange={handleChange} style={{ width: 'auto' }} />
                     CSAT (Đã làm khảo sát)
                   </label>
                 </div>

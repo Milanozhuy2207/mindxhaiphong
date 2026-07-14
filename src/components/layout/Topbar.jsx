@@ -30,9 +30,12 @@ export default function Topbar() {
   };
 
   const getRoleDisplayName = (role) => {
-    switch(role) {
+    switch (role) {
       case 'super_admin': return 'Super Admin';
-      case 'admin': return 'Quản lý';
+      case 'admin': return 'Admin';
+      case 'CM': return 'CM';
+      case 'CS': return 'CS'
+      case 'OPS': return 'OPS'
       default: return 'Nhân viên';
     }
   };

@@ -5,6 +5,7 @@ import Students from './pages/Students';
 import Classes from './pages/Classes';
 import Tickets from './pages/Tickets';
 import Schedule from './pages/Schedule';
+import Users from './pages/Users';
 import Login from './pages/Login';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
@@ -26,6 +27,7 @@ function App() {
             <Route path="classes" element={<Classes />} />
             <Route path="tickets" element={<Tickets />} />
             <Route path="schedule" element={<Schedule />} />
+            <Route path="users" element={<Users />} />
             <Route path="*" element={<div style={{ padding: '2rem' }}>Page not found</div>} />
           </Route>
         </Routes>
