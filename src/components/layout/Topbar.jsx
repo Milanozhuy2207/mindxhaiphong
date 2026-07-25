@@ -1,5 +1,6 @@
-import { Bell, Search, User, LogOut } from 'lucide-react';
+import { Bell, Search, User, LogOut, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
@@ -9,6 +10,7 @@ import './Topbar.css';
 
 export default function Topbar() {
   const { currentUser, userRole, logout } = useAuth();
+  const { isDarkMode, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [notificationCount, setNotificationCount] = useState(0);
 
@@ -48,6 +50,9 @@ export default function Topbar() {
       </div>
 
       <div className="topbar-actions">
+        <button className="icon-btn" onClick={toggleTheme} title={isDarkMode ? 'Chế độ sáng' : 'Chế độ tối'}>
+          {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+        </button>
         <button className="icon-btn relative">
           <Bell size={20} />
           {notificationCount > 0 && <span className="badge">{notificationCount}</span>}

@@ -90,7 +90,7 @@
 }
 
 .custom-table tbody tr:hover {
-  background-color: rgba(0, 0, 0, 0.02);
+  background-color: var(--bg-hover);
 }
 
 .status-badge {
@@ -101,9 +101,9 @@
   display: inline-block;
 }
 
-.status-active { background-color: rgba(16, 185, 129, 0.1); color: var(--success); }
-.status-warning { background-color: rgba(245, 158, 11, 0.1); color: var(--warning); }
-.status-info { background-color: rgba(59, 130, 246, 0.1); color: var(--info); }
+.status-active { background-color: var(--success-light); color: var(--success); }
+.status-warning { background-color: var(--warning-light); color: var(--warning); }
+.status-info { background-color: var(--info-light); color: var(--info); }
 
 .action-buttons {
   display: flex;
@@ -123,7 +123,7 @@
 }
 
 .btn-icon.text-danger:hover {
-  background-color: #fee2e2;
+  background-color: var(--danger-light);
   color: var(--danger);
 }
 
