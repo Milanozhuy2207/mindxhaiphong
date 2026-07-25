@@ -16,7 +16,30 @@ export default function Schedule() {
   const [baseDate, setBaseDate] = useState(new Date());
   const [selectedClass, setSelectedClass] = useState(null);
   const [activeTab, setActiveTab] = useState('calendar');
-  const [shiftFilter, setShiftFilter] = useState('all');
+  
+  const getCurrentShift = () => {
+    const hour = new Date().getHours();
+    if (hour < 13) return 'morning';
+    if (hour < 18) return 'afternoon';
+    return 'evening';
+  };
+
+  const [shiftFilter, setShiftFilter] = useState(getCurrentShift());
+  const [autoUpdateShift, setAutoUpdateShift] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (autoUpdateShift) {
+        setShiftFilter(getCurrentShift());
+      }
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [autoUpdateShift]);
+
+  const handleShiftClick = (shift) => {
+    setShiftFilter(shift);
+    setAutoUpdateShift(false);
+  };
 
   useEffect(() => {
     // Lấy danh sách lớp học
@@ -202,30 +225,35 @@ export default function Schedule() {
       }
     });
 
-    const timeSlots = Array.from(timeSlotsSet).sort((a, b) => {
-      const isTimeA = /^\d{2}:\d{2}$/.test(a);
-      const isTimeB = /^\d{2}:\d{2}$/.test(b);
-      if (isTimeA && isTimeB) return a.localeCompare(b);
-      if (isTimeA && !isTimeB) return -1;
-      if (!isTimeA && isTimeB) return 1;
-      return a.localeCompare(b); 
-    });
-
-    const grid = {};
-    timeSlots.forEach(time => {
-      grid[time] = {};
-      weekDays.forEach(day => {
-        grid[time][day.id] = [];
-      });
+    const dayColumns = {};
+    weekDays.forEach(day => {
+      dayColumns[day.id] = [];
     });
 
     parsedClasses.forEach(cls => {
       cls.matchedDays.forEach(dayId => {
-        grid[cls.exactTime][dayId].push(cls);
+        if (dayColumns[dayId]) {
+          dayColumns[dayId].push({...cls}); // push copy
+        }
       });
     });
 
-    return { grid, timeSlots, unassigned, parsedClasses };
+    Object.keys(dayColumns).forEach(dayId => {
+      dayColumns[dayId].sort((a, b) => {
+        const timeA = a.exactTime || '23:59';
+        const timeB = b.exactTime || '23:59';
+        
+        // Handle sorting for "Ca Sáng", "Ca Chiều", etc.
+        const isTimeA = /^\d{2}:\d{2}$/.test(timeA);
+        const isTimeB = /^\d{2}:\d{2}$/.test(timeB);
+        if (isTimeA && isTimeB) return timeA.localeCompare(timeB);
+        if (isTimeA && !isTimeB) return -1;
+        if (!isTimeA && isTimeB) return 1;
+        return timeA.localeCompare(timeB); 
+      });
+    });
+
+    return { dayColumns, unassigned, parsedClasses };
   }, [classes, appointments, demoClasses, weekDays]);
 
   const getColorClass = (classId) => {
@@ -286,71 +314,67 @@ export default function Schedule() {
   const currentMonthStr = `${daysVN[baseDate.getDay()]}, ${String(baseDate.getDate()).padStart(2, '0')}/${String(baseDate.getMonth() + 1).padStart(2, '0')}/${baseDate.getFullYear()}`;
   const localDateStr = `${baseDate.getFullYear()}-${String(baseDate.getMonth() + 1).padStart(2, '0')}-${String(baseDate.getDate()).padStart(2, '0')}`;
 
-  const gridColumnsStr = weekDays.map(day => {
-    if (day.isToday) return 'minmax(220px, 3fr)';
-    const now = new Date();
-    now.setHours(0,0,0,0);
-    const dayDate = new Date(day.fullDate);
-    dayDate.setHours(0,0,0,0);
-    
-    if (dayDate < now) return 'minmax(90px, 1fr)'; // past
-    return 'minmax(130px, 2fr)'; // future
-  }).join(' ');
 
-  const filteredTimeSlots = parsedData.timeSlots.filter(timeSlot => {
-    if (shiftFilter === 'all') return true;
-    
-    let h = parseInt(timeSlot.split(':')[0]);
-    if (isNaN(h)) {
-      if (timeSlot.toLowerCase().includes('sáng')) h = 8;
-      else if (timeSlot.toLowerCase().includes('chiều')) h = 14;
-      else if (timeSlot.toLowerCase().includes('tối')) h = 19;
-    }
-    
-    if (shiftFilter === 'morning') return h < 13;
-    if (shiftFilter === 'afternoon') return h >= 13 && h < 18;
-    if (shiftFilter === 'evening') return h >= 18;
-    return true;
-  });
+
+  const filteredDayColumns = useMemo(() => {
+    const result = {};
+    weekDays.forEach(day => {
+      result[day.id] = parsedData.dayColumns[day.id].filter(cls => {
+        let h = parseInt((cls.exactTime || '').split(':')[0]);
+        if (isNaN(h)) {
+          if ((cls.exactTime || '').toLowerCase().includes('sáng')) h = 8;
+          else if ((cls.exactTime || '').toLowerCase().includes('chiều')) h = 14;
+          else if ((cls.exactTime || '').toLowerCase().includes('tối')) h = 19;
+        }
+        if (shiftFilter === 'morning') return h < 13;
+        if (shiftFilter === 'afternoon') return h >= 13 && h < 18;
+        if (shiftFilter === 'evening') return h >= 18;
+        return true;
+      });
+    });
+    return result;
+  }, [parsedData.dayColumns, shiftFilter, weekDays]);
 
   return (
     <div className="schedule-container">
-      <div className="schedule-header-wrap" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '1rem' }}>
+      <div className="schedule-header-wrap" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '0.5rem', marginBottom: '0.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <h1 className="page-title">Quản Lý Lịch Học & Lịch Hẹn</h1>
-            <p className="page-subtitle">Theo dõi lịch học chính thức và các lịch hẹn khác</p>
+            <h1 className="page-title" style={{ fontSize: '1.25rem', marginBottom: '0.1rem' }}>Quản Lý Lịch Học & Lịch Hẹn</h1>
+            <p className="page-subtitle" style={{ fontSize: '0.8rem', margin: 0 }}>Theo dõi lịch học chính thức và các lịch hẹn khác</p>
           </div>
           
-          <div className="schedule-tabs" style={{ display: 'flex', gap: '0.5rem', background: 'var(--bg-card)', padding: '0.5rem', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)' }}>
+          <div className="schedule-tabs" style={{ display: 'flex', gap: '0.35rem', background: 'var(--bg-card)', padding: '0.35rem', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)' }}>
             <button 
               className={`btn ${activeTab === 'calendar' ? 'btn-primary' : 'btn-ghost'}`}
               onClick={() => setActiveTab('calendar')}
+              style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem' }}
             >
-              <Calendar size={18} /> Lịch Tổng Hợp
+              <Calendar size={16} /> Lịch Tổng Hợp
             </button>
             <button 
               className={`btn ${activeTab === 'demo' ? 'btn-primary' : 'btn-ghost'}`}
               onClick={() => setActiveTab('demo')}
+              style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem' }}
             >
-              <Clock size={18} /> Lịch Demo
+              <Clock size={16} /> Lịch Demo
             </button>
             <button 
               className={`btn ${activeTab === 'makeup' ? 'btn-primary' : 'btn-ghost'}`}
               onClick={() => setActiveTab('makeup')}
+              style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem' }}
             >
-              <Clock size={18} /> Lịch Học Bù
+              <Clock size={16} /> Lịch Học Bù
             </button>
           </div>
         </div>
         
         {activeTab === 'calendar' && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginTop: '0.5rem' }}>
-            <div className="shift-filters" style={{ display: 'flex', gap: '0.5rem', background: 'var(--bg-base)', padding: '0.25rem', borderRadius: 'var(--radius-lg)' }}>
-              <button className={`btn ${shiftFilter === 'all' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setShiftFilter('all')}>Tất cả</button>
-              <button className={`btn ${shiftFilter === 'morning' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setShiftFilter('morning')}>Sáng (08h-12h)</button>
-              <button className={`btn ${shiftFilter === 'afternoon' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setShiftFilter('afternoon')}>Chiều (14h-18h)</button>
-              <button className={`btn ${shiftFilter === 'evening' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setShiftFilter('evening')}>Tối (19h-21h30)</button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginTop: '0.25rem' }}>
+            <div className="shift-filters" style={{ display: 'flex', gap: '0.35rem', background: 'var(--bg-base)', padding: '0.2rem', borderRadius: 'var(--radius-lg)' }}>
+              <button className={`btn ${shiftFilter === 'morning' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => handleShiftClick('morning')} style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}>Sáng (08h-12h)</button>
+              <button className={`btn ${shiftFilter === 'afternoon' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => handleShiftClick('afternoon')} style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}>Chiều (14h-18h)</button>
+              <button className={`btn ${shiftFilter === 'evening' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => handleShiftClick('evening')} style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}>Tối (19h-21h30)</button>
             </div>
             <div className="date-controls" style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
             <button className="btn-today" onClick={handleToday}>Hôm nay</button>
@@ -407,51 +431,30 @@ export default function Schedule() {
         </div>
       ) : (
         <>
-          <div className="timetable-card">
-            <div className="timetable-grid" style={{ gridTemplateColumns: `80px ${gridColumnsStr}` }}>
-              {/* Header Row */}
-              <div className="grid-header-row">
-                <div className="grid-header-cell empty-corner"></div>
-                {weekDays.map(day => (
-                  <div key={day.id} className={`grid-header-cell ${day.isToday ? 'today' : ''}`}>
-                    <span className="day-name">{day.label}</span>
-                    <span className="day-date">{day.dateStr}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Body Rows */}
-              {filteredTimeSlots.length === 0 ? (
-                <div style={{ gridColumn: '1 / -1', padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  Không có lịch học nào phù hợp với bộ lọc này.
+          <div className="kanban-board">
+            {weekDays.map(day => (
+              <div key={day.id} className={`kanban-column ${day.isToday ? 'today' : ''}`}>
+                <div className="kanban-header">
+                  <span className="day-name">{day.label}</span>
+                  <span className="day-date">{day.dateStr}</span>
                 </div>
-              ) : (
-                filteredTimeSlots.map(timeSlot => {
-                  let shiftLabel = '';
-                  for (let cls of parsedData.parsedClasses) {
-                    if (cls.exactTime === timeSlot) {
-                      shiftLabel = cls.shiftLabel;
-                      break;
-                    }
-                  }
-
-                  return (
-                    <div key={timeSlot} className="grid-body-row">
-                      <div className="time-row-cell">
-                        <span className="exact-time">{timeSlot}</span>
-                        {shiftLabel && <span className="shift-hint">{shiftLabel}</span>}
-                      </div>
-                      
-                      {weekDays.map(day => (
-                        <div key={`${timeSlot}-${day.id}`} className={`day-content-cell ${day.isToday ? 'today-col' : ''}`}>
-                          {parsedData.grid[timeSlot][day.id].map((cls, idx) => renderClassCard(cls, idx))}
+                <div className="kanban-body">
+                  {filteredDayColumns[day.id].length === 0 ? (
+                    <div className="empty-day">Trống</div>
+                  ) : (
+                    filteredDayColumns[day.id].map((cls, idx) => (
+                      <div key={`${cls.dbId || cls.id}-${idx}`} className="kanban-card-wrapper">
+                        <div className="kanban-time-badge">
+                          <Clock size={12} />
+                          {cls.exactTime} {cls.shiftLabel && `(${cls.shiftLabel})`}
                         </div>
-                      ))}
-                    </div>
-                  );
-                })
-              )}
-            </div>
+                        {renderClassCard(cls, idx)}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
 
           {parsedData.unassigned.length > 0 && (
@@ -481,7 +484,7 @@ export default function Schedule() {
 
       {selectedClass && (
         <div className="modal-overlay" onClick={() => setSelectedClass(null)}>
-          <div className="modal-content glass" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px' }}>
+          <div className="modal-content glass" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '1000px', width: '90%' }}>
             <div className="modal-header">
               <h2>Chi tiết lớp: {selectedClass.id} - {selectedClass.name}</h2>
               <button className="btn-close" onClick={() => setSelectedClass(null)}>&times;</button>

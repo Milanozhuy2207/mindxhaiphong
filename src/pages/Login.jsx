@@ -15,7 +15,7 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
       await login(email, password);
       toast.success('Đăng nhập thành công');
@@ -33,7 +33,7 @@ export default function Login() {
       {/* Decorative background elements */}
       <div className="login-bg-shape shape-1"></div>
       <div className="login-bg-shape shape-2"></div>
-      
+
       <div className="login-card">
         <div className="login-header">
           <div className="login-logo">
@@ -42,38 +42,38 @@ export default function Login() {
           <h2>MindX Dashboard</h2>
           <p>Đăng nhập để quản lý trung tâm</p>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
             <label htmlFor="email">Email</label>
             <div className="input-wrapper">
               <Mail className="input-icon" size={20} />
-              <input 
-                type="email" 
-                id="email" 
+              <input
+                type="email"
+                id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@mindx.edu.vn"
-                required 
+                required
               />
             </div>
           </div>
-          
+
           <div className="form-group">
             <label htmlFor="password">Mật khẩu</label>
             <div className="input-wrapper">
               <Lock className="input-icon" size={20} />
-              <input 
-                type="password" 
-                id="password" 
+              <input
+                type="password"
+                id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                required 
+                required
               />
             </div>
           </div>
-          
+
           <button type="submit" className="login-btn" disabled={loading}>
             {loading ? (
               <>
@@ -88,7 +88,7 @@ export default function Login() {
             )}
           </button>
         </form>
-        
+
         <div className="login-footer">
           <p>Hệ thống quản lý nội bộ MindX</p>
         </div>

@@ -12,7 +12,7 @@
 }
 
 .user-card {
-  background: white;
+  background: var(--bg-surface);
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
@@ -57,24 +57,24 @@
 
 .role-super_admin,
 .role-admin {
-  background-color: #fee2e2;
-  color: #ef4444;
+  background-color: var(--danger-light);
+  color: var(--danger);
 }
 
 .role-cm,
 .role-ops {
-  background-color: #e0e7ff;
-  color: #6366f1;
+  background-color: var(--info-light);
+  color: var(--info);
 }
 
 .role-cs {
-  background-color: #fef08a;
-  color: #a16207;
+  background-color: var(--warning-light);
+  color: var(--warning);
 }
 
 .role-staff {
-  background-color: #dcfce7;
-  color: #22c55e;
+  background-color: var(--success-light);
+  color: var(--success);
 }
 
 .user-info {
@@ -85,7 +85,7 @@
   margin: 0 0 4px 0;
   font-size: 16px;
   font-weight: 600;
-  color: var(--text-dark);
+  color: var(--text-main);
 }
 
 .user-email {
